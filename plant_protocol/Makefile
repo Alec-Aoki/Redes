@@ -14,7 +14,7 @@ FONTES_COMUNS = common/plant_message.cpp common/socket_utils.cpp
 # arquivos exclusivos do gerenciador
 FONTES_GERENCIADOR = gerenciador/main.cpp gerenciador/connection_handler.cpp gerenciador/sensor_registry.cpp gerenciador/actuator_registry.cpp
 
-todos: bin gerenciador sensor atuador cliente
+todos: bin gerenciador sensor atuador cliente orquestrador
 
 bin:
 	mkdir -p bin
@@ -30,6 +30,9 @@ atuador: atuador/main.cpp $(FONTES_COMUNS)
 
 cliente: cliente/main.cpp $(FONTES_COMUNS)
 	$(CXX) $(CXXFLAGS) -o bin/cliente cliente/main.cpp $(FONTES_COMUNS)
+
+orquestrador: orquestrador/main.cpp orquestrador/orquestrador.cpp common/device_ids.h
+	$(CXX) $(CXXFLAGS) -o bin/orquestrador orquestrador/main.cpp orquestrador/orquestrador.cpp
 
 limpar:
 	rm -rf bin

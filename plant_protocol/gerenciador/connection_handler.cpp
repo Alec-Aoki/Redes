@@ -2,6 +2,8 @@
 #include "../common/plant_message.h"
 #include "../common/socket_utils.h"
 #include "../common/device_ids.h"
+#include "../common/log_thread_safe.h"
+#include <sstream> 
 #include <iostream>
 #include <cstdlib>
 #include <sys/socket.h>
@@ -63,6 +65,10 @@ static void acionarAtuadorSeNecessario(const string& idAtuador, bool deveLigar, 
 
     // Se o atuador nunca se conectou, nao tem o que fazer, a leitura so fica fora do limite mesmo
     if (!atuadorConectado) {
+        ostringstream linhaLog;
+        linhaLog << "[GERENCIADOR] Leitura fora do limite, mas " << idAtuador << " nao esta conectado";
+        cout << "[GERENCIADOR] Leitura fora do limite, mas " << idAtuador << " nao esta conectado\n";
+        logThreadSafe(linhaLog.str()); 
         return;
     }
 
@@ -81,7 +87,9 @@ static void acionarAtuadorSeNecessario(const string& idAtuador, bool deveLigar, 
     string mensagem = construirMensagem(tipo_mensagem::CMD, idGerenciador, payload);
 
     if (enviarTexto(socketAtuador, mensagem)) {
-        cout << "[GERENCIADOR] CMD enviado para " << idAtuador << " acao " << acao << "\n";
+        ostringstream linhaLog;
+        linhaLog << "[GERENCIADOR] CMD enviado para " << idAtuador << " acao " << acao << "\n";
+        logThreadSafe(linhaLog.str());
         // Atualiza o estado otimisticamente, a resposta ACK/ERR do atuador eh tratada na thread dele
         registroAtuadores.definirEstadoLigado(idAtuador, deveLigar);
     }
@@ -141,7 +149,7 @@ static void aplicarHisterese(const string& subtipoSensor, float valorLido, float
 static void tratarSensor(int descritorSocket, const string& idSensor, RegistroSensores& registroSensores,
                         RegistroAtuadores& registroAtuadores, const string& idGerenciador) {
     registroSensores.registrarSensor(idSensor);
-    cout << "[GERENCIADOR] Sensor " << idSensor << " registrado\n";
+    logThreadSafe("[GERENCIADOR] Sensor " + idSensor + " registrado\n");
 
     Mensagem mensagemRecebida;
     while (receberMensagem(descritorSocket, mensagemRecebida)) {
@@ -158,7 +166,10 @@ static void tratarSensor(int descritorSocket, const string& idSensor, RegistroSe
 
         float valorLido = atof(campos["VALOR"].c_str());
         registroSensores.atualizarLeitura(idSensor, valorLido);
-        cout << "[GERENCIADOR] DATA de " << idSensor << " valor " << valorLido << "\n";
+
+        ostringstream linhaLog;
+        linhaLog << "[GERENCIADOR] DATA de " << idSensor << " valor " << valorLido << "\n";
+        logThreadSafe(linhaLog.str());
 
         // DATA nao exige resposta explicita em operacao normal, conforme especificado no relatorio
 
@@ -169,13 +180,13 @@ static void tratarSensor(int descritorSocket, const string& idSensor, RegistroSe
         }
     }
 
-    cout << "[GERENCIADOR] Sensor " << idSensor << " desconectado\n";
+    logThreadSafe("[GERENCIADOR] Sensor " + idSensor + " desconectado\n");
 }
 
 // Loop especifico pra conexoes de atuador, recebe ACK/ERR em resposta aos comandos enviados
 static void tratarAtuador(int descritorSocket, const string& idAtuador, RegistroAtuadores& registroAtuadores) {
     registroAtuadores.registrarAtuador(idAtuador, descritorSocket);
-    cout << "[GERENCIADOR] Atuador " << idAtuador << " registrado\n";
+    logThreadSafe("[GERENCIADOR] Atuador " + idAtuador + " registrado\n");
 
     Mensagem mensagemRecebida;
     while (receberMensagem(descritorSocket, mensagemRecebida)) {
@@ -183,20 +194,20 @@ static void tratarAtuador(int descritorSocket, const string& idAtuador, Registro
         hardware), entao so logamos a resposta aqui
         Se vier ERR, assumimos estado padrao seguro desligando o atuador no registro */
         if (mensagemRecebida.tipo == tipo_mensagem::ACK) {
-            cout << "[GERENCIADOR] " << idAtuador << " confirmou ACK\n";
+            logThreadSafe("[GERENCIADOR] " + idAtuador + " confirmou ACK\n");
         } else if (mensagemRecebida.tipo == tipo_mensagem::ERR) {
-            cout << "[GERENCIADOR] " << idAtuador << " retornou ERR, assumindo estado seguro\n";
+            logThreadSafe("[GERENCIADOR] " + idAtuador + " retornou ERR, assumindo estado seguro\n");
             registroAtuadores.definirEstadoLigado(idAtuador, false);
         }
     }
 
     registroAtuadores.removerAtuador(idAtuador);
-    cout << "[GERENCIADOR] Atuador " << idAtuador << " desconectado\n";
+    logThreadSafe("[GERENCIADOR] Atuador " + idAtuador + " desconectado\n");
 }
 
 // Loop especifico pra conexoes de cliente, atende CONFIG e REQ_DATA
 static void tratarCliente(int descritorSocket, const string& idCliente, RegistroSensores& registroSensores, const string& idGerenciador) {
-    cout << "[GERENCIADOR] Cliente " << idCliente << " conectado\n";
+    logThreadSafe("[GERENCIADOR] Cliente " + idCliente + " conectado\n");
 
     Mensagem mensagemRecebida;
     while (receberMensagem(descritorSocket, mensagemRecebida)) {
@@ -221,7 +232,11 @@ static void tratarCliente(int descritorSocket, const string& idCliente, Registro
             }
 
             registroSensores.definirLimites(idAlvo, minimo, maximo);
-            cout << "[GERENCIADOR] Limites de " << idAlvo << " configurados min " << minimo << " max " << maximo << "\n";
+
+            ostringstream linhaLog;
+            linhaLog << "[GERENCIADOR] Limites de " << idAlvo << " configurados min " << minimo << " max " << maximo << "\n";
+            logThreadSafe(linhaLog.str());
+
             enviarAck(descritorSocket, idGerenciador);
 
         } else if (mensagemRecebida.tipo == tipo_mensagem::REQ_DATA) {
@@ -266,7 +281,7 @@ static void tratarCliente(int descritorSocket, const string& idCliente, Registro
         }
     }
 
-    cout << "[GERENCIADOR] Cliente " << idCliente << " desconectado\n";
+    logThreadSafe("[GERENCIADOR] Cliente " + idCliente + " desconectado\n");
 }
 
 void tratarConexao(int descritorSocket, RegistroSensores& registroSensores, RegistroAtuadores& registroAtuadores) {
