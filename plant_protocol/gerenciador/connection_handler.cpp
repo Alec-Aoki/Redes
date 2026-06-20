@@ -148,7 +148,7 @@ static void aplicarHisterese(const string& subtipoSensor, float valorLido, float
 static void tratarSensor(int descritorSocket, const string& idSensor, RegistroSensores& registroSensores,
                         RegistroAtuadores& registroAtuadores, const string& idGerenciador) {
     registroSensores.registrarSensor(idSensor);
-    logThreadSafe("[GERENCIADOR] Sensor " + idSensor + " registrado\n");
+    logThreadSafe("[GERENCIADOR] Sensor " + idSensor + " registrado");
 
     Mensagem mensagemRecebida;
     while (receberMensagem(descritorSocket, mensagemRecebida)) {
@@ -179,13 +179,13 @@ static void tratarSensor(int descritorSocket, const string& idSensor, RegistroSe
         }
     }
 
-    logThreadSafe("[GERENCIADOR] Sensor " + idSensor + " desconectado\n");
+    logThreadSafe("[GERENCIADOR] Sensor " + idSensor + " desconectado");
 }
 
 // Loop especifico pra conexoes de atuador, recebe ACK/ERR em resposta aos comandos enviados
 static void tratarAtuador(int descritorSocket, const string& idAtuador, RegistroAtuadores& registroAtuadores) {
     registroAtuadores.registrarAtuador(idAtuador, descritorSocket);
-    logThreadSafe("[GERENCIADOR] Atuador " + idAtuador + " registrado\n");
+    logThreadSafe("[GERENCIADOR] Atuador " + idAtuador + " registrado");
 
     Mensagem mensagemRecebida;
     while (receberMensagem(descritorSocket, mensagemRecebida)) {
@@ -193,20 +193,20 @@ static void tratarAtuador(int descritorSocket, const string& idAtuador, Registro
         hardware), entao so logamos a resposta aqui
         Se vier ERR, assumimos estado padrao seguro desligando o atuador no registro */
         if (mensagemRecebida.tipo == tipo_mensagem::ACK) {
-            logThreadSafe("[GERENCIADOR] " + idAtuador + " confirmou ACK\n");
+            logThreadSafe("[GERENCIADOR] " + idAtuador + " confirmou ACK");
         } else if (mensagemRecebida.tipo == tipo_mensagem::ERR) {
-            logThreadSafe("[GERENCIADOR] " + idAtuador + " retornou ERR, assumindo estado seguro\n");
+            logThreadSafe("[GERENCIADOR] " + idAtuador + " retornou ERR, assumindo estado seguro");
             registroAtuadores.definirEstadoLigado(idAtuador, false);
         }
     }
 
     registroAtuadores.removerAtuador(idAtuador);
-    logThreadSafe("[GERENCIADOR] Atuador " + idAtuador + " desconectado\n");
+    logThreadSafe("[GERENCIADOR] Atuador " + idAtuador + " desconectado");
 }
 
 // Loop especifico pra conexoes de cliente, atende CONFIG e REQ_DATA
 static void tratarCliente(int descritorSocket, const string& idCliente, RegistroSensores& registroSensores, const string& idGerenciador) {
-    logThreadSafe("[GERENCIADOR] Cliente " + idCliente + " conectado\n");
+    logThreadSafe("[GERENCIADOR] Cliente " + idCliente + " conectado");
 
     Mensagem mensagemRecebida;
     while (receberMensagem(descritorSocket, mensagemRecebida)) {
@@ -280,7 +280,7 @@ static void tratarCliente(int descritorSocket, const string& idCliente, Registro
         }
     }
 
-    logThreadSafe("[GERENCIADOR] Cliente " + idCliente + " desconectado\n");
+    logThreadSafe("[GERENCIADOR] Cliente " + idCliente + " desconectado");
 }
 
 void tratarConexao(int descritorSocket, RegistroSensores& registroSensores, RegistroAtuadores& registroAtuadores) {
@@ -300,7 +300,7 @@ void tratarConexao(int descritorSocket, RegistroSensores& registroSensores, Regi
 
     Mensagem mensagemHello;
     if (!receberMensagem(descritorSocket, mensagemHello) || mensagemHello.tipo != tipo_mensagem::HELLO) {
-        cout << "[GERENCIADOR] Handshake nao concluido a tempo, encerrando conexao\n";
+        logThreadSafe("[GERENCIADOR] Handshake nao concluido a tempo, encerrando conexao");
         fecharSocket(descritorSocket);
         return;
     }
@@ -331,7 +331,7 @@ void tratarConexao(int descritorSocket, RegistroSensores& registroSensores, Regi
     } else if (idDispositivo.rfind(tipo_dispositivo::CLIENTE, 0) == 0) {
         tratarCliente(descritorSocket, idDispositivo, registroSensores, idGerenciador);
     } else {
-        cout << "[GERENCIADOR] Tipo de dispositivo desconhecido para ID " << idDispositivo << "\n";
+        logThreadSafe("[GERENCIADOR] Tipo de dispositivo desconhecido para ID " + idDispositivo);
     }
 
     fecharSocket(descritorSocket);

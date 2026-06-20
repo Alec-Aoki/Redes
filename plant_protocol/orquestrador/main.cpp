@@ -102,7 +102,7 @@ static void encaminharSaidaFilho(int descritorLeitura, const string& prefixo) {
     char caractereAtual;
     while (read(descritorLeitura, &caractereAtual, 1) > 0) {
         if (caractereAtual == '\n') {
-            plant::logThreadSafe("[" + prefixo + "] " + linhaAcumulada + "\n");
+            plant::logThreadSafe("[" + prefixo + "] " + linhaAcumulada);
             linhaAcumulada.clear();
         } else {
             linhaAcumulada += caractereAtual;
@@ -111,7 +111,7 @@ static void encaminharSaidaFilho(int descritorLeitura, const string& prefixo) {
 
     // Imprime qualquer resto de linha que nao terminou com \n antes do pipe fechar
     if (!linhaAcumulada.empty()) {
-        plant::logThreadSafe("[" + prefixo + "] " + linhaAcumulada + "\n");
+        plant::logThreadSafe("[" + prefixo + "] " + linhaAcumulada);
     }
 
     close(descritorLeitura);
