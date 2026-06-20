@@ -67,7 +67,6 @@ static void acionarAtuadorSeNecessario(const string& idAtuador, bool deveLigar, 
     if (!atuadorConectado) {
         ostringstream linhaLog;
         linhaLog << "[GERENCIADOR] Leitura fora do limite, mas " << idAtuador << " nao esta conectado";
-        cout << "[GERENCIADOR] Leitura fora do limite, mas " << idAtuador << " nao esta conectado\n";
         logThreadSafe(linhaLog.str()); 
         return;
     }

@@ -1,4 +1,5 @@
 #include "orquestrador.h"
+#include "../common/log_thread_safe.h" 
 #include <iostream>
 #include <thread>
 #include <vector>
@@ -96,13 +97,12 @@ Roda em uma thread dedicada por dispositivo, ja que a leitura de cada
 pipe eh bloqueante
 */
 static void encaminharSaidaFilho(int descritorLeitura, const string& prefixo) {
-    char bufferLinha[1024];
     string linhaAcumulada;
 
     char caractereAtual;
     while (read(descritorLeitura, &caractereAtual, 1) > 0) {
         if (caractereAtual == '\n') {
-            cout << "[" << prefixo << "] " << linhaAcumulada << "\n";
+            plant::logThreadSafe("[" + prefixo + "] " + linhaAcumulada + "\n");
             linhaAcumulada.clear();
         } else {
             linhaAcumulada += caractereAtual;
@@ -111,10 +111,9 @@ static void encaminharSaidaFilho(int descritorLeitura, const string& prefixo) {
 
     // Imprime qualquer resto de linha que nao terminou com \n antes do pipe fechar
     if (!linhaAcumulada.empty()) {
-        cout << "[" << prefixo << "] " << linhaAcumulada << "\n";
+        plant::logThreadSafe("[" + prefixo + "] " + linhaAcumulada + "\n");
     }
 
-    (void)bufferLinha; // Mantido apenas para clareza do tamanho de buffer pretendido, leitura eh byte a byte
     close(descritorLeitura);
 }
 
